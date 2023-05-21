@@ -1,36 +1,23 @@
-use rocket::serde::json::{to_string, Json};
-use rocket::serde::Serialize;
-#[derive(Serialize)]
-pub struct User {
-    pub id: i32,
-    pub name: &'static str,
-    pub age: i32,
-}
-
-fn get_users() -> &'static [User] {
-    &[
-        User {
-            id: 1,
-            name: "Jagad Yudha",
-            age: 23,
-        },
-        User {
-            id: 2,
-            name: "Bambang Andi",
-            age: 27,
-        },
-    ]
-}
+use diesel::prelude::*;
+use models::user::User;
+use rocket::serde::json::Json;
+use rocket_diesel_boilerplate::*;
 
 #[get("/")]
-pub fn users() -> Json<&'static [User]> {
-    Json(get_users())
+pub fn users() -> Json<Vec<User>> {
+    use self::schema::users::dsl::*;
+    let connection: &mut PgConnection = &mut establish_connection();
+    let results: Vec<User> = users.load::<User>(connection).expect("Error loading users");
+    Json(results)
 }
 
-#[get("/<id>")]
-pub fn user(id: i32) -> Option<Json<&'static User>> {
-    get_users()
-        .iter()
-        .find(|x: &&User| x.id == id)
-        .map(|user: &User| Json(user))
+#[get("/<user_id>")]
+pub fn user(user_id: i32) -> Json<Vec<User>> {
+    use self::schema::users::dsl::*;
+    let connection: &mut PgConnection = &mut establish_connection();
+    let results: Vec<User> = users
+        .find(user_id)
+        .load::<User>(connection)
+        .expect("Error loading user");
+    Json(results)
 }
